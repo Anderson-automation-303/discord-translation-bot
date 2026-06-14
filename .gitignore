@@ -1,0 +1,14 @@
+# Virtual environment
+venv/
+
+# Environment variables (SECRET KEYS)
+.env
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# OS files (optional but good practice)
+.DS_Store
+
