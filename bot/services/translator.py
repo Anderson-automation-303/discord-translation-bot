@@ -3,33 +3,35 @@ import requests
 
 DEEPL_API_KEY = os.getenv("DEEPL_API_KEY")
 
-# -----------------------------
-# TRANSLATION FUNCTION
-# -----------------------------
+DEEPL_URL = "https://api-free.deepl.com/v2/translate"
+
+
 def translate_text(text: str, target_lang: str):
     """
-    Translate text using DeepL API.
-
-    Returns:
-        translated_text (str)
-        detected_language (str)
+    DeepL API (NEW header-based auth - 2025 update)
     """
 
     if not DEEPL_API_KEY:
         raise RuntimeError("DEEPL_API_KEY is missing.")
 
-    url = "https://api-free.deepl.com/v2/translate"
+    headers = {
+        "Authorization": f"DeepL-Auth-Key {DEEPL_API_KEY}",
+        "Content-Type": "application/json"
+    }
 
     payload = {
-        "auth_key": DEEPL_API_KEY,
-        "text": text,
+        "text": [text],
         "target_lang": target_lang
     }
 
-    response = requests.post(url, data=payload)
+    response = requests.post(
+        DEEPL_URL,
+        headers=headers,
+        json=payload
+    )
+
     data = response.json()
 
-    # Safety check (prevents crashes if API fails)
     if "translations" not in data:
         raise RuntimeError(f"DeepL API error: {data}")
 
