@@ -1,42 +1,39 @@
-import discord
-from discord import app_commands
-from bot.services.translator import translate_text
+import os
+import requests
 
-TOKEN = "YOUR_BOT_TOKEN_HERE"
+DEEPL_API_KEY = os.getenv("DEEPL_API_KEY")
 
-intents = discord.Intents.default()
-client = discord.Client(intents=intents)
-tree = app_commands.CommandTree(client)
+# -----------------------------
+# TRANSLATION FUNCTION
+# -----------------------------
+def translate_text(text: str, target_lang: str):
+    """
+    Translate text using DeepL API.
 
+    Returns:
+        translated_text (str)
+        detected_language (str)
+    """
 
-@tree.command(name="translate", description="Translate text using DeepL")
-@app_commands.describe(
-    text="Text to translate",
-    language="Target language (e.g. EN, ES, FR, DE)"
-)
-async def translate(interaction: discord.Interaction, text: str, language: str = "EN"):
+    if not DEEPL_API_KEY:
+        raise RuntimeError("DEEPL_API_KEY is missing.")
 
-    await interaction.response.defer()
+    url = "https://api-free.deepl.com/v2/translate"
 
-    try:
-        translated, detected = translate_text(text, language.upper())
+    payload = {
+        "auth_key": DEEPL_API_KEY,
+        "text": text,
+        "target_lang": target_lang
+    }
 
-        await interaction.followup.send(
-            f"🌍 **Translated:** {translated}\n"
-            f"🔎 **Detected Language:** {detected}"
-        )
+    response = requests.post(url, data=payload)
+    data = response.json()
 
-    except Exception as e:
-        await interaction.followup.send(
-            f"❌ Translation failed: {str(e)}"
-        )
+    # Safety check (prevents crashes if API fails)
+    if "translations" not in data:
+        raise RuntimeError(f"DeepL API error: {data}")
 
+    translated = data["translations"][0]["text"]
+    detected = data["translations"][0].get("detected_source_language", "unknown")
 
-@client.event
-async def on_ready():
-    await tree.sync()
-    print(f"Logged in as {client.user}")
-    print("Slash commands synced")
-
-
-client.run(TOKEN)
+    return translated, detected
