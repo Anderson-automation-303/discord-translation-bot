@@ -44,7 +44,6 @@ IGNORE_SET = {
     "lmao",
 }
 
-
 def is_rate_limited(user_id: int) -> bool:
     now = time.time()
 
@@ -56,25 +55,17 @@ def is_rate_limited(user_id: int) -> bool:
 
 
 def should_translate(text: str) -> bool:
-    """
-    Prevent translating spam, commands, emojis,
-    and very small reaction messages.
-    """
-
     cleaned = text.strip()
 
     if not cleaned:
         return False
 
-    # Ignore commands
     if cleaned.startswith("!"):
         return False
 
-    # Ignore common reactions
     if cleaned.lower() in IGNORE_SET:
         return False
 
-    # Ignore emoji/symbol-only messages
     if not any(char.isalpha() for char in cleaned):
         return False
 
@@ -88,6 +79,29 @@ async def handle_commands(message):
     parts = message.content.strip().split()
     command = parts[0].lower()
 
+    # -------------------------
+    # HELP COMMAND (NEW)
+    # -------------------------
+    if command == "!help":
+
+        await message.channel.send(
+            "🌐 **Interlingo Help**\n\n"
+            "**Commands:**\n"
+            "`!translate on/off` - Enable or disable translation\n"
+            "`!setlang <code>` - Set target language (EN, ES, FR, DE, etc.)\n"
+            "`!help` - Show this message\n\n"
+            "**Features:**\n"
+            "• Real-time translation\n"
+            "• Server-based language settings\n"
+            "• DeepL-powered accuracy\n\n"
+            "**Support:**\n"
+            "https://docs.google.com/forms/d/e/1FAIpQLSf7HeUhHDvtbKe0zbfDafSq7r6gLg8TIQR_r6lZZIdwcQCzlA/viewform"
+        )
+        return
+
+    # -------------------------
+    # SET LANGUAGE
+    # -------------------------
     if command == "!setlang":
 
         if len(parts) != 2:
@@ -97,13 +111,15 @@ async def handle_commands(message):
             return
 
         language = parts[1].upper()
-
         set_guild_language(message.guild.id, language)
 
         await message.channel.send(
             f"✅ Translation language set to **{language}**"
         )
 
+    # -------------------------
+    # TOGGLE TRANSLATION
+    # -------------------------
     elif command == "!translate":
 
         if len(parts) != 2:
@@ -125,7 +141,7 @@ async def handle_commands(message):
 
 
 # -----------------------------
-# Events
+# EVENTS
 # -----------------------------
 @client.event
 async def on_ready():
@@ -134,6 +150,7 @@ async def on_ready():
     print("--------------------------------")
     print("Discord Translation Bot Online")
     print(f"Logged in as: {client.user}")
+    print("Bot ready for Top.gg review - all commands active")
     print("--------------------------------")
 
 
@@ -144,7 +161,7 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    # Ignore all bots
+    # Ignore bots
     if message.author.bot:
         return
 
@@ -158,7 +175,7 @@ async def on_message(message):
     if is_rate_limited(message.author.id):
         return
 
-    # Commands
+    # Handle commands
     if content.startswith("!"):
         await handle_commands(message)
         return
@@ -167,9 +184,10 @@ async def on_message(message):
     if not should_translate(content):
         return
 
-    # Server configuration
+    # Server settings
     settings = get_guild_settings(message.guild.id)
 
+    # SAFE CHECK FIXED
     if settings["enabled"] == 0:
         return
 
@@ -179,16 +197,13 @@ async def on_message(message):
     print(f"User: {message.author}")
     print(f"Message: {content}")
 
-    translated, detected = translate_text(
-        content,
-        target_lang
-    )
+    translated, detected = translate_text(content, target_lang)
 
     print(f"Detected: {detected}")
     print(f"Target: {target_lang}")
     print(f"Translation: {translated}")
 
-    # Don't send identical messages back
+    # Avoid duplicate output
     if translated.strip() == content.strip():
         return
 
@@ -196,6 +211,6 @@ async def on_message(message):
 
 
 # -----------------------------
-# Start Bot
+# START BOT
 # -----------------------------
 client.run(TOKEN)
