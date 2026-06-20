@@ -1,6 +1,6 @@
 import discord
 from discord import app_commands
-from translator import translate_text  # <-- your file
+from bot.services.translator import translate_text
 
 TOKEN = "YOUR_BOT_TOKEN_HERE"
 
@@ -16,20 +16,27 @@ tree = app_commands.CommandTree(client)
 )
 async def translate(interaction: discord.Interaction, text: str, language: str = "EN"):
 
-    await interaction.response.defer()  # prevents timeout
+    await interaction.response.defer()
 
-    translated, detected = translate_text(text, language.upper())
+    try:
+        translated, detected = translate_text(text, language.upper())
 
-    await interaction.followup.send(
-        f"🌍 **Translated:** {translated}\n"
-        f"🔎 **Detected Language:** {detected}"
-    )
+        await interaction.followup.send(
+            f"🌍 **Translated:** {translated}\n"
+            f"🔎 **Detected Language:** {detected}"
+        )
+
+    except Exception as e:
+        await interaction.followup.send(
+            f"❌ Translation failed: {str(e)}"
+        )
 
 
 @client.event
 async def on_ready():
     await tree.sync()
     print(f"Logged in as {client.user}")
+    print("Slash commands synced")
 
 
 client.run(TOKEN)
